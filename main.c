@@ -10,6 +10,7 @@
 
 #include <linux/string.h> /* for memset() and memcpy() */
 #include "expression.h"
+#include "fixed-point.h"
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
@@ -99,7 +100,9 @@ static ssize_t dev_write(struct file *filep,
     pr_info("Received %ld -> %s\n", len, message);
 
     calc();
-    return len;
+
+    /* return the result of calc() for error checking */
+    return result;
 }
 
 noinline void user_func_nop_cleanup(struct expr_func *f, void *c)
@@ -118,8 +121,60 @@ noinline uint64_t user_func_nop(struct expr_func *f, vec_expr_t args, void *c)
     return 0;
 }
 
+noinline uint64_t user_func_sqrt(struct expr_func *f, vec_expr_t args, void *c)
+{
+    uint64_t ix0 = expr_eval(&vec_nth(&args, 0));
+
+    /* for 0 or NAN or INF, just return itself*/
+    if (ix0 == 0 || ix0 == NAN_INT || ix0 == INF_INT)
+        return ix0;
+
+    /* first, scale our number between 1 to 4 */
+    int lz = __builtin_clzll(ix0);
+    /* for negative number */
+    if (lz == 0)
+        return NAN_INT;
+
+
+    /* for range from 0 to 30 */
+    if (lz <= 30) {
+        if (lz & 1)
+            lz++;
+        ix0 >>= (30 - lz);
+    }
+    /* for range from 31 to 63 */
+    else {
+        if (!(lz & 1))
+            lz++;
+        ix0 <<= (lz - 31);
+    }
+
+    int64_t s0, q, t, r;
+    /* generate sqrt(x) bit by bit */
+    q = s0 = 0;      /* [q] = sqrt(x) */
+    r = 0x400000000; /* r = moving bit from right to left */
+
+    while (r != 0) {
+        t = s0 + r;      // t = s_i + 2^(-(i+1))
+        if (t <= ix0) {  // t <= y_i ?
+            s0 = t + r;  // s_{i+1} = s_i + 2^(-i)
+            ix0 -= t;    // y_{i+1} = yi - t
+            q += r;      // q_{i+1} = q_{i}+ 2^(-i-1)
+        }
+        ix0 += ix0;
+        r >>= 1;
+    }
+
+    if (lz < 31)
+        return (q >> 1) << ((30 - lz) >> 1);
+
+    return (q >> 1) >> ((lz - 31) >> 1);
+}
+
+
 static struct expr_func user_funcs[] = {
     {"nop", user_func_nop, user_func_nop_cleanup, 0},
+    {"sqrt", user_func_sqrt, user_func_nop_cleanup, 0},
     {NULL, NULL, NULL, 0},
 };
 

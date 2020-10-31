@@ -6,12 +6,12 @@ ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 GIT_HOOKS := .git/hooks/applied
 
-all: $(GIT_HOOKS) eval
+all: $(GIT_HOOKS) eval client
 	make -C $(KDIR) M=$(PWD) modules
 
 $(GIT_HOOKS):
-	@scripts/install-git-hooks
-	@echo
+	scripts/install-git-hooks
+	echo
 
 load: calc.ko
 	sudo insmod calc.ko
@@ -25,6 +25,14 @@ check: all
 
 eval: eval.c
 	$(CC) -o $@ $< -std=gnu11
+
+client: client.c
+	$(CC) -o $@ $< -lm -std=gnu11
+
+bench: all
+	$(MAKE) load
+	./client
+	$(MAKE) unload
 
 clean:
 	make -C $(KDIR) M=$(PWD) clean
