@@ -123,7 +123,7 @@ noinline uint64_t user_func_nop(struct expr_func *f, vec_expr_t args, void *c)
 
 noinline uint64_t user_func_sqrt(struct expr_func *f, vec_expr_t args, void *c)
 {
-    uint64_t ix0 = expr_eval(&vec_nth(&args, 0));
+    int64_t ix0 = expr_eval(&vec_nth(&args, 0));
 
     /* for 0 or NAN or INF, just return itself*/
     if (ix0 == 0 || ix0 == NAN_INT || ix0 == INF_INT)
@@ -171,10 +171,29 @@ noinline uint64_t user_func_sqrt(struct expr_func *f, vec_expr_t args, void *c)
     return (q >> 1) >> ((lz - 31) >> 1);
 }
 
+noinline uint64_t user_func_sigma(struct expr_func *f, vec_expr_t args, void *c)
+{
+    struct expr *v = &vec_nth(&args, 0);
+    int64_t start = expr_eval(&vec_nth(&args, 2));
+    int64_t end = expr_eval(&vec_nth(&args, 3));
+
+    /* return if bad function call */
+    if (start > end)
+        return NAN_INT;
+
+    int64_t sum = 0;
+
+    for (int64_t i = start; i <= end; i += (1UL << 32)) {
+        (*(struct expr_var *) (v->param.var.value)).value = i;
+        sum += expr_eval(&vec_nth(&args, 1));
+    }
+    return sum;
+}
 
 static struct expr_func user_funcs[] = {
     {"nop", user_func_nop, user_func_nop_cleanup, 0},
     {"sqrt", user_func_sqrt, user_func_nop_cleanup, 0},
+    {"sigma", user_func_sigma, user_func_nop_cleanup, 0},
     {NULL, NULL, NULL, 0},
 };
 

@@ -36,4 +36,4 @@ bench: all
 
 clean:
 	make -C $(KDIR) M=$(PWD) clean
-	$(RM) eval
+	$(RM) eval client
