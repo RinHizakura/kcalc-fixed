@@ -174,19 +174,35 @@ noinline uint64_t user_func_sqrt(struct expr_func *f, vec_expr_t args, void *c)
 noinline uint64_t user_func_sigma(struct expr_func *f, vec_expr_t args, void *c)
 {
     struct expr *v = &vec_nth(&args, 0);
-    int64_t start = expr_eval(&vec_nth(&args, 2));
-    int64_t end = expr_eval(&vec_nth(&args, 3));
+    int64_t lower = expr_eval(&vec_nth(&args, 2));
+    int64_t upper = expr_eval(&vec_nth(&args, 3));
 
     /* return if bad function call */
-    if (start > end)
+    if (lower > upper)
         return NAN_INT;
 
     int64_t sum = 0;
 
-    for (int64_t i = start; i <= end; i += (1UL << 32)) {
+    int max_iter = INT_MAX;
+    for (int64_t i = lower; i <= upper && max_iter > 0;
+         i += (1UL << 32), max_iter--) {
         (*(struct expr_var *) (v->param.var.value)).value = i;
-        sum += expr_eval(&vec_nth(&args, 1));
+        int64_t tmp = expr_eval(&vec_nth(&args, 1));
+        if (tmp == NAN_INT || tmp == INF_INT)
+            return tmp;
+
+        int64_t new_sum;
+        if (__builtin_add_overflow(sum, tmp, &new_sum)) {
+            pr_info("In Sigma: overflow occur\n");
+            return INF_INT;
+        }
+
+        sum = new_sum;
     }
+
+    if (max_iter <= 0)
+        return NAN_INT;
+
     return sum;
 }
 

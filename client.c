@@ -42,10 +42,15 @@ void test_expr(char *s, double expect)
                result);
 }
 
-#define SIGMA(ans, i, expr, start, end) \
-    ans = 0;                            \
-    for (i = start; i <= end; i++)      \
-        ans += expr;
+#define SIGMA(ans, i, expr, start, end)       \
+    ans = 0;                                  \
+    for (i = start; i <= end; i++) {          \
+        ans += expr;                          \
+        if (ans > INT_MAX || ans < INT_MIN) { \
+            ans = INFINITY;                   \
+            break;                            \
+        }                                     \
+    }
 
 int main()
 {
@@ -56,10 +61,10 @@ int main()
     }
 
     printf("\nStart bench......\n");
-    int n;
+    int64_t n;
     double ans;
-    SIGMA(ans, n, n, 1, 10);
-    test_expr("sigma(n, n, 1, 10)", ans);
+    SIGMA(ans, n, n, -10, 11);
+    test_expr("sigma(n, n, -10, 11)", ans);
 
     SIGMA(ans, n, 2 * n, 1, 10);
     test_expr("sigma(n, 2 * n, 1, 10)", ans);
@@ -70,11 +75,11 @@ int main()
     SIGMA(ans, n, n * 1.1 + 5, 10, 30);
     test_expr("sigma(n, n * 1.1 + 5, 10, 30)", ans);
 
-    SIGMA(ans, n, sqrt(n), 1, 10);
-    test_expr("sigma(n, sqrt(n), 1, 10)", ans);
+    SIGMA(ans, n, sqrt(n) * 1.1, 3, 10);
+    test_expr("sigma(n, sqrt(n) * 1.1, 3, 10)", ans);
 
-    SIGMA(ans, n, sqrt(n) * 1.1, 3, 30);
-    test_expr("sigma(n, sqrt(n) * 1.1, 3, 30)", ans);
+    SIGMA(ans, n, n, INT_MIN, INT_MIN + 1);
+    test_expr("INT_MIN=-2147483648, sigma(n, n, INT_MIN, INT_MIN+1)", ans);
 
     for (int i = 0; i < 100; i += 10) {
         char expr[128] = "sqrt(";
