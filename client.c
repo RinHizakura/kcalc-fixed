@@ -20,6 +20,9 @@
 int fd;
 void test_expr(char *s, double expect)
 {
+    if (expect > INT_MAX || expect < INT_MIN)
+        expect = INFINITY;
+
     ssize_t value = write(fd, s, strlen(s));
     char buffer[BUF_SIZE];
     fixedp ipt = {0};
@@ -42,14 +45,10 @@ void test_expr(char *s, double expect)
                result);
 }
 
-#define SIGMA(ans, i, expr, start, end)       \
-    ans = 0;                                  \
-    for (i = start; i <= end; i++) {          \
-        ans += expr;                          \
-        if (ans > INT_MAX || ans < INT_MIN) { \
-            ans = INFINITY;                   \
-            break;                            \
-        }                                     \
+#define SIGMA(ans, i, expr, start, end) \
+    ans = 0;                            \
+    for (i = start; i <= end; i++) {    \
+        ans += expr;                    \
     }
 
 int main()
@@ -63,17 +62,6 @@ int main()
     printf("\nStart bench......\n");
     int64_t n;
     double ans;
-    SIGMA(ans, n, n, -10, 11);
-    test_expr("sigma(n, n, -10, 11)", ans);
-
-    SIGMA(ans, n, 2 * n, 1, 10);
-    test_expr("sigma(n, 2 * n, 1, 10)", ans);
-
-    SIGMA(ans, n, 3 * n + 2, 20, 33);
-    test_expr("sigma(n, 3 * n + 2, 20, 33)", ans);
-
-    SIGMA(ans, n, n * 1.1 + 5, 10, 30);
-    test_expr("sigma(n, n * 1.1 + 5, 10, 30)", ans);
 
     SIGMA(ans, n, sqrt(n) * 1.1, 3, 10);
     test_expr("sigma(n, sqrt(n) * 1.1, 3, 10)", ans);
@@ -81,7 +69,7 @@ int main()
     SIGMA(ans, n, n, INT_MIN, INT_MIN + 1);
     test_expr("INT_MIN=-2147483648, sigma(n, n, INT_MIN, INT_MIN+1)", ans);
 
-    for (int i = 0; i < 100; i += 10) {
+    for (int i = 0; i < 50; i += 10) {
         char expr[128] = "sqrt(";
         char num[16];
         snprintf(num, 16, "%d", i);
@@ -89,6 +77,10 @@ int main()
         strcat(expr, ")");
         test_expr(expr, sqrt(i));
     }
+
+    test_expr("INT_MAX = 2147483647, INT_MAX * 2 ", INT_MAX * 2.0f);
+    test_expr("3.5 * 3.75 ", 3.5 * 3.75);
+    test_expr("12345.6789 * 9876.5432 ", 12345.6789 * 9876.5432);
 
     printf("Done.\n\n");
 

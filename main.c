@@ -193,7 +193,7 @@ noinline uint64_t user_func_sigma(struct expr_func *f, vec_expr_t args, void *c)
 
         int64_t new_sum;
         if (__builtin_add_overflow(sum, tmp, &new_sum)) {
-            pr_info("In Sigma: overflow occur\n");
+            pr_info("calc: sigma, overflow occur\n");
             return INF_INT;
         }
 

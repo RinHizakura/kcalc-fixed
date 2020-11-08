@@ -249,11 +249,47 @@ static uint64_t mult(uint64_t a, uint64_t b)
 {
     fixedp fa = {.data = a}, fb = {.data = b};
     /* (a + b) * (c + d) = ac + ad + bc + bd */
-    fixedp result = {.inte = fa.inte * fb.inte};
+
+    int32_t tmp;
+    if (__builtin_mul_overflow(fa.inte, fb.inte, &tmp)) {
+        pr_info("calc: mult, overflow occur\n");
+        return INF_INT;
+    }
+
+    fixedp result = {.inte = tmp};
     uint64_t ad = (GET_NUM(a) >> 32) * GET_FRAC(b);
     uint64_t bc = GET_FRAC(a) * (GET_NUM(b) >> 32);
 
-    return result.data + ad + bc;
+
+    uint64_t bd = 0;
+    uint32_t frac_a = GET_FRAC(a);
+    uint32_t frac_b = GET_FRAC(b);
+    /* calculate 'bd' by moving bit */
+    while (frac_b != 0) {
+        int shift = __builtin_clz(frac_b) + 1;
+        frac_a >>= shift;
+        bd += frac_a;
+        frac_b <<= shift;
+    }
+
+    int64_t ans;
+    if (__builtin_add_overflow(ad, bc, &ans)) {
+        pr_info("calc: mult, overflow occur\n");
+        return INF_INT;
+    }
+
+
+    if (__builtin_add_overflow(ans, result.data, &ans)) {
+        pr_info("calc: mult, overflow occur\n");
+        return INF_INT;
+    }
+
+    if (__builtin_add_overflow(ans, bd, &ans)) {
+        pr_info("calc: mult, overflow occur\n");
+        return INF_INT;
+    }
+
+    return (uint64_t) ans;
 }
 
 static uint64_t divid(uint64_t a, uint64_t b)
