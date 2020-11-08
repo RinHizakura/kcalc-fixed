@@ -81,6 +81,8 @@ int main()
     test_expr("INT_MAX = 2147483647, INT_MAX * 2 ", INT_MAX * 2.0f);
     test_expr("3.5 * 3.75 ", 3.5 * 3.75);
     test_expr("12345.6789 * 9876.5432 ", 12345.6789 * 9876.5432);
+    test_expr("INT_MAX = 2147483647, INT_MAX + INT_MAX ",
+              INT_MAX + (float) INT_MAX);
 
     printf("Done.\n\n");
 

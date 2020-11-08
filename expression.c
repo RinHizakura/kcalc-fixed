@@ -354,7 +354,12 @@ static uint64_t left_shift(uint64_t a, uint64_t b)
 
 static uint64_t plus(uint64_t a, uint64_t b)
 {
-    return a + b;
+    int64_t ans;
+    if (__builtin_add_overflow(a, b, &ans)) {
+        pr_info("calc: add, overflow occur\n");
+        return INF_INT;
+    }
+    return (uint64_t) ans;
 }
 
 static uint64_t minus(uint64_t a, uint64_t b)
